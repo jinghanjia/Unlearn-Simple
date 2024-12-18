@@ -3,7 +3,7 @@ import pathlib
 BASELINE_PATH = pathlib.Path(__file__).parent.resolve()
 sys.path.append(BASELINE_PATH)
 
-from baselines import it_unlearn, tv_unlearn, finetune
+from baselines import it_unlearn, tv_unlearn, finetune, smoothft
 
 import argparse
 from os.path import basename, dirname, join as pathjoin
@@ -12,50 +12,30 @@ from os.path import basename, dirname, join as pathjoin
 def main():
     args = get_args()
     print(args.out_dir)
-    if args.algo == 'kn':
-        raise NotImplementedError()
 
-    elif args.algo == 'tv':
-        if args.ft_model_dir is not None:
-            tv_unlearn(
-                args.model_dir, args.out_dir,
-                some_pt_model_dir=args.model_dir,
-                some_ft_model_dir=args.ft_model_dir,
-                alpha=args.alpha
-            )
-        else:
-            ft_model_dir = pathjoin(dirname(args.out_dir), basename(args.out_dir) + "_ft")
-            finetune(
-                args.model_dir, args.data_file, ft_model_dir,
-                epochs=args.epochs,
-                per_device_batch_size=args.per_device_batch_size,
-                learning_rate=args.lr,
-                max_len=args.max_len,
-                tokenizer_dir=args.tokenizer_dir
-            )
-            tv_unlearn(
-                args.model_dir, args.out_dir,
-                some_pt_model_dir=args.model_dir,
-                some_ft_model_dir=ft_model_dir,
-                alpha=args.alpha
-            )
 
-    else:
-        it_unlearn(
-            args.model_dir, args.data_file, args.out_dir,
-            retain_data_file=args.retain_data_file,
-            loss_type=args.algo,
-            per_device_batch_size=args.per_device_batch_size,
+
+    ft_model_dir = pathjoin(dirname(args.out_dir), basename(args.out_dir) + "_ft")
+    if args.algo == 'sam':
+        smoothft(
+            args.model_dir, args.data_file, ft_model_dir,
             epochs=args.epochs,
+            per_device_batch_size=args.per_device_batch_size,
             learning_rate=args.lr,
             max_len=args.max_len,
             tokenizer_dir=args.tokenizer_dir,
-            resume_from_checkpoint=args.resume_from_checkpoint,
-            beta=args.beta,
-            coeff=args.coeff,
-            npo_coeff=args.npo_coeff,
-            gamma=args.gamma
+            rho=args.rho
         )
+    else:
+        finetune(
+            args.model_dir, args.data_file, ft_model_dir,
+            epochs=args.epochs,
+            per_device_batch_size=args.per_device_batch_size,
+            learning_rate=args.lr,
+            max_len=args.max_len,
+            tokenizer_dir=args.tokenizer_dir
+        )
+
 
     return
 
@@ -130,6 +110,7 @@ def get_args():
     parser.add_argument(
         '--ft_model_dir', type=str, default=None,
     )
+    parser.add_argument('--rho', type=float, default=0.05)
     args = parser.parse_args()
 
     if args.algo == 'gd':

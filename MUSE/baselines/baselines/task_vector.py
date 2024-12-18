@@ -53,7 +53,8 @@ def unlearn(
     model = load_model(model_dir)
     new_state_dict = neg_task_vector.apply_to(pretrained_model=model, scaling_coef=alpha, in_place=False)
     del model
-    new_model = load_model(model_dir, state_dict=new_state_dict, device_map='auto')
+    new_model = load_model(model_dir, device_map='auto')
+    new_model.load_state_dict(new_state_dict, strict=False)
 
     if out_dir is not None:
         new_model.save_pretrained(out_dir)
